@@ -4,8 +4,7 @@ import json
 import re
 
 from room_schedules.data_chains import execute_chain, search_chains
-from room_schedules.settings import BASE_ADDRESS, HOUR_BREAK_POINT
-from advertising.settings import ARTIFAX_API_KEY as API_KEY
+from room_schedules.settings import BASE_ADDRESS, HOUR_BREAK_POINT, API_KEY
 
 
 VENUE_ID = 2
