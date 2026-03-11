@@ -17,3 +17,8 @@ if not O365_CLIENT_SECRET:
 O365_TENANT_ID = getattr(settings, 'O365_TENANT_ID', False)
 if not O365_TENANT_ID:
     raise Exception("O365_TENANT_ID not set in settings.py")
+
+# Optional — set both to use delegated (ROPC) auth instead of application auth.
+# The service account must have Exchange read access on the room mailboxes.
+O365_DELEGATED_USERNAME = getattr(settings, 'O365_DELEGATED_USERNAME', None)
+O365_DELEGATED_PASSWORD = getattr(settings, 'O365_DELEGATED_PASSWORD', None)

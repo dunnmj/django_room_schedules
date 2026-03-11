@@ -3,7 +3,11 @@ import httplib2
 import msal
 from datetime import datetime, timedelta
 
-from room_schedules.settings import HOUR_BREAK_POINT, O365_CLIENT_ID, O365_CLIENT_SECRET, O365_TENANT_ID
+from room_schedules.settings import (
+    HOUR_BREAK_POINT,
+    O365_CLIENT_ID, O365_CLIENT_SECRET, O365_TENANT_ID,
+    O365_DELEGATED_USERNAME, O365_DELEGATED_PASSWORD,
+)
 
 GRAPH_API = "https://graph.microsoft.com/v1.0"
 
@@ -24,9 +28,17 @@ def _get_msal_app():
 
 
 def _get_access_token():
-    result = _get_msal_app().acquire_token_for_client(
-        scopes=["https://graph.microsoft.com/.default"]
-    )
+    app = _get_msal_app()
+    if O365_DELEGATED_USERNAME and O365_DELEGATED_PASSWORD:
+        result = app.acquire_token_by_username_password(
+            username=O365_DELEGATED_USERNAME,
+            password=O365_DELEGATED_PASSWORD,
+            scopes=["https://graph.microsoft.com/Calendars.Read"],
+        )
+    else:
+        result = app.acquire_token_for_client(
+            scopes=["https://graph.microsoft.com/.default"]
+        )
     if "access_token" not in result:
         raise RuntimeError(
             f"O365 authentication failed: {result.get('error_description', result)}"
