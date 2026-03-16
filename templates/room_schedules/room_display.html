@@ -81,7 +81,11 @@
             flex: 0 0 1.5vh;
             background: #4C4C4C;
             overflow: hidden;
+            transition: background-color 0.6s ease;
         }
+        .bg-bands .bg-progress.available { background: #2D7F44; }
+        .bg-bands .bg-progress.warning   { background: #D16837; }
+        .bg-bands .bg-progress.in-use    { background: #C40050; }
         .bg-bands .bg-bottom {
             flex: 1;
             background: #592F65;
@@ -474,7 +478,7 @@
 <!-- Full-width colour bands — bleed header/progress/bottom colours to screen edges -->
 <div class="bg-bands">
     <div class="bg-header {% if is_available %}{% if is_warning %}warning{% else %}available{% endif %}{% else %}in-use{% endif %}"></div>
-    <div class="bg-progress"></div>
+    <div class="bg-progress {% if not is_available %}in-use{% elif next_event %}{% if is_warning %}warning{% else %}available{% endif %}{% endif %}"></div>
     <div class="bg-bottom"></div>
 </div>
 
