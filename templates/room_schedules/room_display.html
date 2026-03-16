@@ -100,7 +100,7 @@
             flex-direction: column;
             flex-shrink: 0;
             position: relative;
-            z-index: 1;
+            z-index: 10;
         }
 
         /* ── Header (3-column: logo | venue/room/status | clock) ── */
@@ -217,11 +217,12 @@
         }
 
         /* ── Progress bar ── */
-        /* .progress-container is a transparent spacer — visual is in .bg-bands */
         .progress-container {
             width: 100%;
             height: 12px;
             flex-shrink: 0;
+            background: #4C4C4C;
+            overflow: hidden;
         }
         .progress-bar {
             height: 100%;
@@ -342,6 +343,7 @@
         .schedule-item .details .name {
             font-size: 20px;
             font-weight: 600;
+            line-height: 1.3;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -349,6 +351,7 @@
         .schedule-item .details .organiser {
             font-size: 16px;
             color: #D4D4D4;
+            line-height: 1.3;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -372,13 +375,12 @@
 
         /* ── Adhoc booking modal ── */
         .booking-modal {
-            position: absolute;
+            position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.75);
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10;
+            z-index: 20;
         }
         .booking-modal-inner {
             background: #1e1e2e;
@@ -386,6 +388,7 @@
             padding: 48px 56px;
             text-align: center;
             min-width: 520px;
+            font-family: "Source Sans Pro", "Calibri", sans-serif;
         }
         .booking-title {
             font-size: 40px;
@@ -471,11 +474,11 @@
 <!-- Full-width colour bands — bleed header/progress/bottom colours to screen edges -->
 <div class="bg-bands">
     <div class="bg-header {% if is_available %}{% if is_warning %}warning{% else %}available{% endif %}{% else %}in-use{% endif %}"></div>
-    <div class="bg-progress">
-        <div class="progress-bar {% if is_available %}available-bar{% else %}in-use-bar{% endif %}" id="progressBar"></div>
-    </div>
+    <div class="bg-progress"></div>
     <div class="bg-bottom"></div>
 </div>
+
+<div id="bgOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:15;"></div>
 
 <div id="app">
 
@@ -514,8 +517,10 @@
         </div>
     </div>
 
-    <!-- ── Progress bar spacer (visual is in .bg-bands) ── -->
-    <div class="progress-container"></div>
+    <!-- ── Progress bar (background from .bg-bands, fill rendered here inside scaled #app) ── -->
+    <div class="progress-container">
+        <div class="progress-bar {% if is_available %}available-bar{% else %}in-use-bar{% endif %}" id="progressBar"></div>
+    </div>
 
     <!-- ── Bottom section ── -->
     <div class="bottom">
@@ -555,31 +560,32 @@
 
     </div>
 
-    {% if is_available and not is_warning and room.o365_calendar_email and room.allow_tablet_booking %}
-    <div id="bookingModal" style="display:none;" class="booking-modal">
-        <div class="booking-modal-inner">
-            <div class="booking-title">Book this room</div>
-            <div class="booking-subtitle">How long do you need it?</div>
-            <div class="duration-stepper">
-                <button class="step-btn" onclick="changeDuration(-5)">–</button>
-                <div class="duration-display" id="durationDisplay">15 min</div>
-                <button class="step-btn" onclick="changeDuration(5)">+</button>
-            </div>
-            {% if next_event %}
-            <button class="until-next-btn" id="untilNextBtn" onclick="selectUntilNext()">
-                Until next booking ({{ next_event.start_time|time:'H:i' }})
-            </button>
-            {% endif %}
-            <div class="booking-actions">
-                <button class="cancel-btn" onclick="closeBookingModal()">Cancel</button>
-                <button class="confirm-btn" id="confirmBtn" onclick="confirmBooking()">Confirm Booking</button>
-            </div>
-            <div class="booking-error" id="bookingError" style="display:none;"></div>
-        </div>
-    </div>
-    {% endif %}
 
 </div>
+
+{% if is_available and not is_warning and room.o365_calendar_email and room.allow_tablet_booking %}
+<div id="bookingModal" style="display:none;" class="booking-modal">
+    <div class="booking-modal-inner">
+        <div class="booking-title">Book this room</div>
+        <div class="booking-subtitle">How long do you need it?</div>
+        <div class="duration-stepper">
+            <button class="step-btn" onclick="changeDuration(-5)">–</button>
+            <div class="duration-display" id="durationDisplay">15 min</div>
+            <button class="step-btn" onclick="changeDuration(5)">+</button>
+        </div>
+        {% if next_event %}
+        <button class="until-next-btn" id="untilNextBtn" onclick="selectUntilNext()">
+            Until next booking ({{ next_event.start_time|time:'H:i' }})
+        </button>
+        {% endif %}
+        <div class="booking-actions">
+            <button class="cancel-btn" onclick="closeBookingModal()">Cancel</button>
+            <button class="confirm-btn" id="confirmBtn" onclick="confirmBooking()">Confirm Booking</button>
+        </div>
+        <div class="booking-error" id="bookingError" style="display:none;"></div>
+    </div>
+</div>
+{% endif %}
 
     <script>
         // ── Scale #app to fill the viewport while preserving aspect ratio ──
@@ -589,6 +595,15 @@
         function applyScale() {
             const scale = window.innerHeight / APP_H;
             appEl.style.transform = "scale(" + scale + ")";
+            // Scale the booking modal to match
+            const modalEl = document.getElementById('bookingModal');
+            if (modalEl) modalEl.style.transform = "scale(" + scale + ")";
+            // Read actual rendered heights from the transformed #app elements so
+            // bg-bands bands align pixel-perfectly (avoids fractional-px rounding drift)
+            const bgHeader   = document.querySelector('.bg-header');
+            const bgProgress = document.querySelector('.bg-progress');
+            if (bgHeader)   bgHeader.style.flexBasis   = appEl.querySelector('.header').getBoundingClientRect().height + "px";
+            if (bgProgress) bgProgress.style.flexBasis = appEl.querySelector('.progress-container').getBoundingClientRect().height + "px";
         }
 
         applyScale();
@@ -722,6 +737,7 @@
             updateDurationDisplay();
             const untilBtn = document.getElementById('untilNextBtn');
             if (untilBtn) untilBtn.classList.remove('selected');
+            document.getElementById('bgOverlay').style.display = 'block';
             document.getElementById('bookingModal').style.display = 'flex';
             document.getElementById('bookingError').style.display = 'none';
             document.getElementById('confirmBtn').disabled = false;
@@ -730,6 +746,7 @@
 
         function closeBookingModal() {
             document.getElementById('bookingModal').style.display = 'none';
+            document.getElementById('bgOverlay').style.display = 'none';
         }
 
         function changeDuration(delta) {
