@@ -58,15 +58,8 @@ def show_venue(request, venue_id):
     return render(request, "room_schedules/dashboard.html", {'events': events, 'current_date': current_date})
 
 
-def show_room(request, venue_id, room_id):
-    room = get_object_or_404(Room, pk=room_id)
-    events = Event.objects.filter(room=room, end_time__gte=datetime.datetime.now(), cancelled=False)
-    current_date = (datetime.datetime.now() - datetime.timedelta(hours=HOUR_BREAK_POINT)).date()
-    return render(request, "room_schedules/dashboard.html", {'events': events, 'current_date': current_date, 'room': room})
-
-
-def show_room_display(request, venue_id, room_id):
-    room = get_object_or_404(Room, pk=room_id)
+def _get_room_display_context(room):
+    """Build the shared template context for room display views."""
     now = datetime.datetime.now()
     current_date = (now - datetime.timedelta(hours=HOUR_BREAK_POINT)).date()
 
@@ -134,7 +127,7 @@ def show_room_display(request, venue_id, room_id):
     next_event_start_iso = next_event.start_time.isoformat() if next_event else None
     free_since_iso = free_since.isoformat() if free_since else None
 
-    context = {
+    return {
         'room': room,
         'events': events,
         'current_date': current_date,
@@ -149,6 +142,16 @@ def show_room_display(request, venue_id, room_id):
         'free_since_iso': free_since_iso,
     }
 
+
+def show_room(request, venue_id, room_id):
+    room = get_object_or_404(Room, pk=room_id)
+    context = _get_room_display_context(room)
+    return render(request, "room_schedules/room_screen.html", context)
+
+
+def show_room_display(request, venue_id, room_id):
+    room = get_object_or_404(Room, pk=room_id)
+    context = _get_room_display_context(room)
     return render(request, "room_schedules/room_display.html", context)
 
 
