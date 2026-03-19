@@ -68,8 +68,10 @@
         .header.in-use    { background: var(--status-in-use); }
 
         .header-left {
-            flex-shrink: 0;
-            margin-right: clamp(16px, 2vw, 40px);
+            flex: 0 0 clamp(120px, 15vw, 200px);
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
         }
         .header-left img {
             height: clamp(60px, 10vh, 120px);
@@ -146,8 +148,10 @@
         }
 
         .header-right {
-            flex-shrink: 0;
-            margin-left: clamp(16px, 2vw, 40px);
+            flex: 0 0 clamp(120px, 15vw, 200px);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
         }
 
         .live-clock {
