@@ -2,7 +2,7 @@ import datetime
 
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
 # Create your views here.
@@ -149,6 +149,7 @@ def show_room(request, venue_id, room_id):
     return render(request, "room_schedules/room_screen.html", context)
 
 
+@ensure_csrf_cookie
 def show_room_tablet(request, venue_id, room_id):
     room = get_object_or_404(Room, pk=room_id)
     context = _get_room_display_context(room)
