@@ -4,7 +4,6 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="60">
     <title>{{ room.name }}</title>
     <link rel="stylesheet" href="{% static 'room_schedules/brand.css' %}">
     <style>
@@ -709,6 +708,34 @@
         // Run immediately, then every second
         tick();
         setInterval(tick, 1000);
+
+        // ── Poll for booking changes instead of full-page meta refresh ──
+        const STATE_HASH_URL = "{% url 'event_schedule/room_state_hash' venue_id=room.venue_id room_id=room.pk %}";
+        let lastStateHash = null;
+        let hashPollFailures = 0;
+
+        function pollStateHash() {
+            fetch(STATE_HASH_URL)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    hashPollFailures = 0;
+                    if (lastStateHash === null) {
+                        lastStateHash = data.hash;
+                    } else if (data.hash !== lastStateHash) {
+                        location.reload();
+                    }
+                })
+                .catch(function() {
+                    hashPollFailures++;
+                    // After 5 consecutive failures, do a full reload as fallback
+                    if (hashPollFailures >= 5) location.reload();
+                });
+        }
+
+        pollStateHash();
+        setInterval(pollStateHash, 10000);
+        // Safety-net full reload every 5 minutes in case polling misses something
+        setTimeout(function() { location.reload(); }, 300000);
 
         {% if is_available and not is_warning and room.o365_calendar_email and room.allow_tablet_booking %}
         // ── Adhoc Booking ──

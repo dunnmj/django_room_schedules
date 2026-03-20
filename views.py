@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404
@@ -219,3 +220,30 @@ def book_adhoc(request, venue_id, room_id):
     )
 
     return JsonResponse({'ok': True})
+
+
+def room_state_hash(request, venue_id, room_id):
+    """Return a short hash of the room's current event state.
+
+    Clients poll this endpoint and only reload when the hash changes,
+    avoiding unnecessary full-page refreshes.
+    """
+    room = get_object_or_404(Room, pk=room_id)
+    now = datetime.datetime.now()
+
+    events = Event.objects.filter(
+        room=room,
+        end_time__gte=now,
+        cancelled=False,
+    ).order_by('start_time').values_list('pk', 'name', 'start_time', 'end_time', 'cancelled')
+
+    # Build a deterministic fingerprint from the event data
+    raw = '|'.join(
+        f'{pk},{name},{st.isoformat()},{et.isoformat()},{c}'
+        for pk, name, st, et, c in events
+    )
+    digest = hashlib.md5(raw.encode()).hexdigest()[:12]
+
+    response = JsonResponse({'hash': digest})
+    response['Cache-Control'] = 'no-store'
+    return response
